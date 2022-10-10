@@ -10,6 +10,8 @@ client_telemetry_topic = id + '/telemetry'
 server_command_topic = id + '/commands'
 client_name = id + 'nightlight_server'
 
+old_led_state = False
+
 print("Making client")
 mqtt_client = mqtt.Client(client_name)
 print("Connecting")
@@ -19,14 +21,19 @@ print("Loop start")
 mqtt_client.loop_start()
 
 def handle_telemetry(client, userdata, message):
+    global old_led_state
     print("Handling msg!")
     payload = json.loads(message.payload.decode())
     print("Message received:", payload)
 
-    command = { 'led_on' : payload['light'] < 300 }
-    print("Sending message:", command)
+    new_led_state = payload['light'] < 300
 
-    client.publish(server_command_topic, json.dumps(command))
+    if (new_led_state != old_led_state):
+        old_led_state = new_led_state
+        command = { 'led_on' : payload['light'] < 300 }
+        print("Sending message:", command)
+
+        client.publish(server_command_topic, json.dumps(command))
 
 print("Subscribing")
 mqtt_client.subscribe(client_telemetry_topic)
